@@ -1,12 +1,12 @@
 import type { PredictionRequest, PredictionResponse } from './types';
 
 /**
- * In development, requests go through the Vite proxy (/api/predict → Railway).
- * In production, they hit the Railway URL directly.
+ * Requests use `/api/predict`:
+ * - In local development: Proxied to Railway by Vite (`vite.config.ts`)
+ * - In production on Vercel: Proxied to Railway by Vercel Rewrites (`vercel.json`)
+ * This avoids all browser CORS preflight blocks.
  */
-const API_URL = import.meta.env.DEV
-  ? '/api/predict'
-  : 'https://car-price-predictor-production-fdec.up.railway.app/predict';
+const API_URL = import.meta.env.VITE_API_URL || '/api/predict';
 
 /**
  * Sends the car feature data to the prediction endpoint and returns

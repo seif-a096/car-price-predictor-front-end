@@ -1,0 +1,16 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/predict",
+      "destination": "https://car-price-predictor-production-fdec.up.railway.app/predict"
+    },
+    {
+      "source": "/api/:path*",
+      "destination": "https://car-price-predictor-production-fdec.up.railway.app/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
