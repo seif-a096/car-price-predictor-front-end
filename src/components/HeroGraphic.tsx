@@ -1,17 +1,26 @@
 import { useEffect, useRef } from 'react';
 
 export default function HeroGraphic() {
+  const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    const container = containerRef.current;
+    if (!canvas || !container) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
     let animationFrameId: number;
     let time = 0;
     let carBounce = 0;
+
+    // Interactive mouse / cursor tracking physics
+    let targetX = 0; // -1 to 1
+    let targetY = 0; // -1 to 1
+    let currentX = 0;
+    let currentY = 0;
+    let currentSteer = 0;
     
     // Generate some random particles for dynamic effect — fewer, slower
     const particles = Array.from({ length: 18 }).map(() => ({
@@ -35,9 +44,54 @@ export default function HeroGraphic() {
     const carImg = new Image();
     carImg.src = '/realistic-car.jpg';
 
+    // Mouse & touch interaction handlers
+    const handleMouseMove = (e: MouseEvent) => {
+      const rect = container.getBoundingClientRect();
+      const normX = ((e.clientX - rect.left) / rect.width - 0.5) * 2; // -1 to 1
+      const normY = ((e.clientY - rect.top) / rect.height - 0.5) * 2; // -1 to 1
+      targetX = Math.max(-1, Math.min(1, normX));
+      targetY = Math.max(-1, Math.min(1, normY));
+    };
+
+    const handleMouseLeave = () => {
+      targetX = 0;
+      targetY = 0;
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches.length > 0) {
+        const rect = container.getBoundingClientRect();
+        const normX = ((e.touches[0].clientX - rect.left) / rect.width - 0.5) * 2;
+        const normY = ((e.touches[0].clientY - rect.top) / rect.height - 0.5) * 2;
+        targetX = Math.max(-1, Math.min(1, normX));
+        targetY = Math.max(-1, Math.min(1, normY));
+      }
+    };
+
+    const handleTouchEnd = () => {
+      targetX = 0;
+      targetY = 0;
+    };
+
+    container.addEventListener('mousemove', handleMouseMove);
+    container.addEventListener('mouseleave', handleMouseLeave);
+    container.addEventListener('touchmove', handleTouchMove, { passive: true });
+    container.addEventListener('touchend', handleTouchEnd);
+
     const render = () => {
       const width = canvas.width;
       const height = canvas.height;
+
+      // Smooth physics lerp for car movement & steering angle
+      currentX += (targetX - currentX) * 0.065;
+      currentY += (targetY - currentY) * 0.065;
+
+      // Vehicle steering lean (drifts into turn when moving horizontally)
+      const targetSteer = (targetX - currentX) * 0.12 + currentX * 0.035;
+      currentSteer += (targetSteer - currentSteer) * 0.08;
+
+      // Subtle parallax shift on background elements
+      const parallaxX = -currentX * 12;
 
       // Clear to pure black (matches the car image background exactly)
       ctx.fillStyle = '#000000';
@@ -45,8 +99,8 @@ export default function HeroGraphic() {
 
       // Subtle blue horizon sky glow — softer
       const skyGrad = ctx.createRadialGradient(
-        width / 2, height * 0.48, 0,
-        width / 2, height * 0.48, width * 0.7
+        width / 2 + parallaxX * 0.5, height * 0.48, 0,
+        width / 2 + parallaxX * 0.5, height * 0.48, width * 0.7
       );
       skyGrad.addColorStop(0, 'rgba(0, 80, 160, 0.15)');
       skyGrad.addColorStop(0.5, 'rgba(0, 30, 80, 0.06)');
@@ -56,11 +110,11 @@ export default function HeroGraphic() {
 
       const horizonY = height * 0.48;
 
-      // Draw stars — gentle twinkling dots scattered across night sky
+      // Draw stars — gentle twinkling dots with subtle parallax
       stars.forEach(star => {
         const twinkle = Math.sin(time * star.twinkleSpeed * 60 + star.twinkleOffset) * 0.5 + 0.5;
         const alpha = star.brightness * (0.6 + twinkle * 0.4); // subtle brightness variation
-        const sx = star.x * width;
+        const sx = star.x * width + parallaxX * 0.3;
         const sy = star.y * height;
 
         // Tiny soft glow around brighter stars
@@ -78,16 +132,16 @@ export default function HeroGraphic() {
         ctx.fill();
       });
 
-      // Draw realistic crescent moon — clean, natural, without artificial halos or rings
+      // Draw realistic crescent moon — top-right corner with celestial tilt & parallax
       const moonRadius = Math.min(width, height) * 0.052;
-      const moonX = width * 0.84;
+      const moonX = width * 0.84 + parallaxX * 0.2;
       const moonY = height * 0.11;
 
       ctx.save();
       ctx.translate(moonX, moonY);
       ctx.rotate(-0.35); // Natural celestial orbital tilt (~20 degrees)
 
-      // 1. Soft, seamless ambient moonlight glow (completely continuous, no hard edges)
+      // 1. Soft, seamless ambient moonlight glow
       const ambientGlow = ctx.createRadialGradient(
         moonRadius * 0.3, 0, 0,
         moonRadius * 0.3, 0, moonRadius * 3.5
@@ -103,13 +157,10 @@ export default function HeroGraphic() {
 
       // 2. Clean 3D Illuminated Crescent Geometry
       ctx.beginPath();
-      // Outer illuminated limb (semicircle)
       ctx.arc(0, 0, moonRadius, -Math.PI / 2, Math.PI / 2, false);
-      // Inner shadow terminator (smooth spherical ellipse curve)
       ctx.ellipse(0, 0, moonRadius * 0.52, moonRadius, 0, Math.PI / 2, -Math.PI / 2, true);
       ctx.closePath();
 
-      // Lunar surface lighting gradient: Crisp silver-white limb smoothly fading to soft lunar blue
       const moonLimb = ctx.createRadialGradient(
         moonRadius * 0.7, 0, moonRadius * 0.05,
         moonRadius * 0.3, 0, moonRadius * 0.95
@@ -169,12 +220,12 @@ export default function HeroGraphic() {
 
       // Fog gradient at the horizon to smoothly fade out the grid lines
       const fogGrad = ctx.createLinearGradient(0, horizonY - 10, 0, horizonY + height * 0.25);
-      fogGrad.addColorStop(0, 'rgba(0, 0, 0, 1)'); // solid black at the horizon
-      fogGrad.addColorStop(1, 'rgba(0, 0, 0, 0)'); // fades to transparent
+      fogGrad.addColorStop(0, 'rgba(0, 0, 0, 1)');
+      fogGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
       ctx.fillStyle = fogGrad;
       ctx.fillRect(0, horizonY - 10, width, height * 0.25);
 
-      // Draw floating dust particles — very soft and subtle
+      // Draw floating dust particles
       ctx.fillStyle = 'rgba(200, 255, 255, 0.2)';
       particles.forEach(p => {
         p.y += p.speed;
@@ -192,32 +243,63 @@ export default function HeroGraphic() {
         }
       });
 
-      // Draw the car with lighten — black bg becomes invisible, car body shows
+      // ─────────────────────────────────────────────────────────────
+      // DYNAMIC CURSOR-SYNCED VEHICLE & LIGHTING
+      // ─────────────────────────────────────────────────────────────
       if (carImg.complete && carImg.naturalWidth > 0) {
         carBounce += 0.03;
-        const bounceY = Math.sin(carBounce) * 2.5;
+        const bounceY = Math.sin(carBounce) * 2.2;
 
         const carW = width * 0.52;
         const carH = (carW / carImg.naturalWidth) * carImg.naturalHeight;
-        const carX = (width - carW) / 2;
-        const carY = height - carH * 0.78 + bounceY;
+        
+        // Horizontal lane glide (up to +/-24% of width) & subtle forward/back depth (+/-2.5% of height)
+        const carCenterX = (width / 2) + currentX * (width * 0.24);
+        const carCenterY = (height - carH * 0.78 + bounceY + (carH / 2)) + currentY * (height * 0.025);
+        const carX = carCenterX - (carW / 2);
+        const carY = carCenterY - (carH / 2);
 
+        // Draw car with dynamic steering tilt and lighten blend mode
         ctx.save();
+        ctx.translate(carCenterX, carCenterY);
+        ctx.rotate(currentSteer);
+        ctx.translate(-carCenterX, -carCenterY);
+
         ctx.globalCompositeOperation = 'lighten';
         ctx.drawImage(carImg, carX, carY, carW, carH);
         ctx.restore();
 
-        // Step 3: Red taillight glow on road
+        // Red taillight ground glow tracking car position
         ctx.save();
         ctx.globalCompositeOperation = 'screen';
+        
+        // Undercarriage ambient glow
         const glowGrad = ctx.createRadialGradient(
-          width / 2, height * 0.92, 5,
-          width / 2, height * 0.92, carW * 0.4
+          carCenterX, height * 0.92, 5,
+          carCenterX, height * 0.92, carW * 0.42
         );
-        glowGrad.addColorStop(0, 'rgba(255, 30, 60, 0.15)');
+        glowGrad.addColorStop(0, 'rgba(255, 30, 60, 0.22)');
+        glowGrad.addColorStop(0.4, 'rgba(255, 20, 50, 0.08)');
         glowGrad.addColorStop(1, 'rgba(255, 30, 60, 0)');
         ctx.fillStyle = glowGrad;
         ctx.fillRect(0, height * 0.7, width, height * 0.3);
+
+        // Dual left and right taillight ground spot reflections
+        const leftLightX = carCenterX - (carW * 0.24);
+        const rightLightX = carCenterX + (carW * 0.24);
+        const spotY = height * 0.91;
+
+        [leftLightX, rightLightX].forEach((lx) => {
+          const spotGrad = ctx.createRadialGradient(lx, spotY, 0, lx, spotY, carW * 0.16);
+          spotGrad.addColorStop(0, 'rgba(255, 60, 80, 0.28)');
+          spotGrad.addColorStop(0.5, 'rgba(255, 20, 50, 0.08)');
+          spotGrad.addColorStop(1, 'rgba(255, 0, 0, 0)');
+          ctx.fillStyle = spotGrad;
+          ctx.beginPath();
+          ctx.arc(lx, spotY, carW * 0.16, 0, Math.PI * 2);
+          ctx.fill();
+        });
+
         ctx.restore();
       }
 
@@ -237,13 +319,38 @@ export default function HeroGraphic() {
 
     return () => {
       window.removeEventListener('resize', handleResize);
+      container.removeEventListener('mousemove', handleMouseMove);
+      container.removeEventListener('mouseleave', handleMouseLeave);
+      container.removeEventListener('touchmove', handleTouchMove);
+      container.removeEventListener('touchend', handleTouchEnd);
       cancelAnimationFrame(animationFrameId);
     };
   }, []);
 
   return (
-    <div style={{ width: '100%', height: '100%', minHeight: '500px', position: 'relative', overflow: 'hidden', borderRadius: 'var(--radius-xl)' }}>
-      <canvas ref={canvasRef} style={{ display: 'block', width: '100%', height: '100%', position: 'absolute', top: 0, left: 0 }} />
+    <div
+      ref={containerRef}
+      style={{
+        width: '100%',
+        height: '100%',
+        minHeight: '500px',
+        position: 'relative',
+        overflow: 'hidden',
+        borderRadius: 'var(--radius-xl)',
+        cursor: 'crosshair'
+      }}
+    >
+      <canvas
+        ref={canvasRef}
+        style={{
+          display: 'block',
+          width: '100%',
+          height: '100%',
+          position: 'absolute',
+          top: 0,
+          left: 0
+        }}
+      />
     </div>
   );
 }
