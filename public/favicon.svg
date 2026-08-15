@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="cyberGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00f0ff"/>
+      <stop offset="50%" stop-color="#7000ff"/>
+      <stop offset="100%" stop-color="#ff007a"/>
+    </linearGradient>
+    <linearGradient id="metalGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00e5ff"/>
+      <stop offset="100%" stop-color="#3b82f6"/>
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="2" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Dark Background Rounded Tile -->
+  <rect width="64" height="64" rx="16" fill="#040714" />
+  <rect width="62" height="62" x="1" y="1" rx="15" stroke="url(#cyberGrad)" stroke-width="1.5" stroke-opacity="0.6" />
+
+  <!-- Speed Grid Accent Lines -->
+  <path d="M12 48L24 38M52 48L40 38M32 48V38" stroke="#00f0ff" stroke-opacity="0.2" stroke-width="1" />
+
+  <!-- Sleek Sports Car Body Silhouette -->
+  <g filter="url(#glow)">
+    <!-- Cabin Roof / Windshield -->
+    <path d="M22 26C24 21 28 19 32 19C36 19 40 21 42 26L48 31H16L22 26Z" fill="#0b1329" stroke="url(#metalGrad)" stroke-width="1.5" stroke-linejoin="round"/>
+    
+    <!-- Aerodynamic Hood & Body -->
+    <path d="M10 35C10 32 14 31 16 31H48C50 31 54 32 54 35L56 41C56 43 54 44 51 44H13C10 44 8 43 8 41L10 35Z" fill="#0f1b3b" stroke="url(#metalGrad)" stroke-width="2" stroke-linejoin="round"/>
+    
+    <!-- Futuristic Headlights (Neon Cyan Glow) -->
+    <path d="M13 35L19 37L15 39L11 37Z" fill="#00f0ff" />
+    <path d="M51 35L45 37L49 39L53 37Z" fill="#00f0ff" />
+    
+    <!-- Central AI Core Intake / Grille Light -->
+    <line x1="26" y1="41" x2="38" y2="41" stroke="#00f0ff" stroke-width="2" stroke-linecap="round" />
+    
+    <!-- Wheels -->
+    <rect x="11" y="42" width="6" height="4" rx="2" fill="#00f0ff" opacity="0.8" />
+    <rect x="47" y="42" width="6" height="4" rx="2" fill="#00f0ff" opacity="0.8" />
+  </g>
+</svg>
